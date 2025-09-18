@@ -11,11 +11,24 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(16))
 
 # Database configuration
-database_url = os.environ.get('DATABASE_URL')
-if database_url and database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+is_production = os.environ.get('FLASK_ENV') == 'production'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///absa_banking.db'
+if is_production:
+    # Production: Use the specified PostgreSQL database
+    database_url = 'postgresql://capitalxdb_user:cErzFTrAr2uuJ180NybFaWBVnr2gMLdI@dpg-d30rrh7diees7389fulg-a/capitalxdb'
+else:
+    # Local development: Use SQLite for easy local testing
+    database_url = 'sqlite:///absa_banking.db'
+
+# Handle Heroku DATABASE_URL if present
+env_database_url = os.environ.get('DATABASE_URL')
+if env_database_url:
+    if env_database_url.startswith('postgres://'):
+        database_url = env_database_url.replace('postgres://', 'postgresql://', 1)
+    else:
+        database_url = env_database_url
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -699,9 +712,12 @@ if __name__ == '__main__':
         # Local development configuration
         app.config['SECRET_KEY'] = 'dev-secret-key-change-in-production'
         
+        db_type = "SQLite (local)" if "sqlite" in app.config['SQLALCHEMY_DATABASE_URI'] else "PostgreSQL (production)"
+        
         print("\n" + "="*50)
         print("ABSA Banking Authentication System")
         print("="*50)
+        print(f"Database: {db_type}")
         print("Application starting on http://localhost:5000")
         print("Admin Panel: http://localhost:5000/admin")
         print(f"Admin Username: {ADMIN_USERNAME}")

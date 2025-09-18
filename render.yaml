@@ -13,9 +13,5 @@ services:
         value: admin123
       - key: SECRET_KEY
         generateValue: true
-
-  - type: pgsql
-    name: absa-banking-db
-    databaseName: absa_banking
-    user: absa_user
-    plan: starter
+      - key: DATABASE_URL
+        value: postgresql://capitalxdb_user:cErzFTrAr2uuJ180NybFaWBVnr2gMLdI@dpg-d30rrh7diees7389fulg-a/capitalxdb
