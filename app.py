@@ -722,7 +722,7 @@ def admin_export_data(session_id):
         for step in auth_steps:
             export_data['steps'][step.step_name] = {
                 'timestamp': step.timestamp.isoformat(),
-                'data': step.form_data,
+                'data': json.loads(step.step_data) if step.step_data else {},
                 'ip_address': step.ip_address or 'Unknown'
             }
         
