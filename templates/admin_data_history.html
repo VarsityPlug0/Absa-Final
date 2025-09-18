@@ -231,42 +231,43 @@
     <button onclick="clearFilters()" class="export-btn">Clear Filters</button>
   </div>
 
-  {% if captured_data %}
+  {% if user_sessions %}
   <div class="sessions-grid" id="sessionsGrid">
-    {% for session_id, session_data in captured_data.items() %}
+    {% for user_session in user_sessions %}
     <div class="session-card" 
-         data-status="{% if session_data.approved_at %}approved{% elif session_data.rejected_at %}rejected{% else %}pending{% endif %}"
-         data-date="{{ session_data.session_start.strftime('%Y-%m-%d') if session_data.session_start else '' }}">
+         data-status="{% if user_session.approved_at %}approved{% elif user_session.rejected_at %}rejected{% else %}pending{% endif %}"
+         data-date="{{ user_session.session_start.strftime('%Y-%m-%d') }}">
       
       <div class="session-header">
         <div>
-          <div class="session-id">{{ session_id[:12] }}...</div>
+          <div class="session-id">{{ user_session.id[:12] }}...</div>
           <div class="session-time">
-            Started: {{ session_data.session_start.strftime('%Y-%m-%d %H:%M:%S') if session_data.session_start else 'Unknown' }}
+            Started: {{ user_session.session_start.strftime('%Y-%m-%d %H:%M:%S') }}
           </div>
         </div>
       </div>
 
       <div class="session-status">
-        {% if session_data.approved_at %}
+        {% if user_session.approved_at %}
           <span class="status-badge status-approved">Approved</span>
-          <div class="session-time">{{ session_data.approved_at.strftime('%Y-%m-%d %H:%M:%S') }} by {{ session_data.approved_by or 'admin' }}</div>
-        {% elif session_data.rejected_at %}
+          <div class="session-time">{{ user_session.approved_at.strftime('%Y-%m-%d %H:%M:%S') }} by {{ user_session.approved_by or 'admin' }}</div>
+        {% elif user_session.rejected_at %}
           <span class="status-badge status-rejected">Rejected</span>
-          <div class="session-time">{{ session_data.rejected_at.strftime('%Y-%m-%d %H:%M:%S') }} by {{ session_data.rejected_by or 'admin' }}</div>
+          <div class="session-time">{{ user_session.rejected_at.strftime('%Y-%m-%d %H:%M:%S') }} by {{ user_session.rejected_by or 'admin' }}</div>
         {% else %}
           <span class="status-badge status-pending">Pending</span>
         {% endif %}
       </div>
 
-      {% if session_data.steps %}
+      {% set auth_steps = user_session.steps %}
+      {% if auth_steps %}
       <div class="session-steps">
-        <div class="step-count">{{ session_data.steps|length }} authentication steps</div>
+        <div class="step-count">{{ auth_steps|length }} authentication steps</div>
         <div class="steps-list">
-          {% for step_name, step_data in session_data.steps.items() %}
+          {% for auth_step in auth_steps %}
           <div class="step-item">
-            <span class="step-name">{{ step_name }}</span>
-            <span class="step-time">{{ step_data.timestamp.strftime('%H:%M:%S') }}</span>
+            <span class="step-name">{{ auth_step.step_name }}</span>
+            <span class="step-time">{{ auth_step.timestamp.strftime('%H:%M:%S') }}</span>
           </div>
           {% endfor %}
         </div>
@@ -274,8 +275,8 @@
       {% endif %}
 
       <div class="session-actions">
-        <a href="{{ url_for('admin_view_data', session_id=session_id) }}" class="view-btn">View Details</a>
-        <button onclick="exportSessionData('{{ session_id }}')" class="export-btn">Export</button>
+        <a href="{{ url_for('admin_view_data', session_id=user_session.id) }}" class="view-btn">View Details</a>
+        <button onclick="exportSessionData('{{ user_session.id }}')" class="export-btn">Export</button>
       </div>
     </div>
     {% endfor %}
