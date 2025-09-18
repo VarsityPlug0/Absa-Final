@@ -532,19 +532,36 @@ def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     
-    # Get pending requests
-    pending_requests = [req for req in approval_requests.values() if req['status'] == 'pending']
+    # Get pending requests from database
+    pending_requests = ApprovalRequest.query.filter_by(status='pending').all()
+    
+    # Convert to dict format for template compatibility
+    pending_requests_data = []
+    for req in pending_requests:
+        req_data = {
+            'id': req.id,
+            'session_id': req.session_id,
+            'step_name': req.step_name,
+            'created_at': req.created_at,
+            'user_data': json.loads(req.user_data) if req.user_data else {},
+            'ip_address': req.ip_address
+        }
+        pending_requests_data.append(req_data)
     
     # Get today's stats
     today = datetime.now().date()
-    approved_today = len([req for req in handled_requests['approved'] 
-                         if req.get('handled_at', datetime.min).date() == today])
-    rejected_today = len([req for req in handled_requests['rejected'] 
-                         if req.get('handled_at', datetime.min).date() == today])
+    approved_today = ApprovalRequest.query.filter(
+        ApprovalRequest.status == 'approved',
+        ApprovalRequest.handled_at >= today
+    ).count()
+    rejected_today = ApprovalRequest.query.filter(
+        ApprovalRequest.status == 'rejected',
+        ApprovalRequest.handled_at >= today
+    ).count()
     
     return render_template('admin_dashboard.html', 
-                         pending_requests=pending_requests,
-                         pending_count=len(pending_requests),
+                         pending_requests=pending_requests_data,
+                         pending_count=len(pending_requests_data),
                          approved_count=approved_today,
                          rejected_count=rejected_today)
 
@@ -554,20 +571,19 @@ def admin_approve(request_id):
     if not session.get('admin_logged_in'):
         return jsonify({'success': False, 'message': 'Unauthorized'})
     
-    if request_id in approval_requests:
-        req = approval_requests[request_id]
-        req['status'] = 'approved'
-        req['handled_at'] = datetime.now()
-        req['approved_by'] = session.get('admin_username', 'admin')
+    approval_request = ApprovalRequest.query.get(request_id)
+    if approval_request:
+        approval_request.status = 'approved'
+        approval_request.handled_at = datetime.now()
+        approval_request.handled_by = session.get('admin_username', 'admin')
         
-        # Store approved data permanently
-        session_id = req['session_id']
-        if session_id in captured_data:
-            captured_data[session_id]['approved_at'] = datetime.now()
-            captured_data[session_id]['approved_by'] = session.get('admin_username', 'admin')
+        # Update user session
+        user_session = UserSession.query.get(approval_request.session_id)
+        if user_session:
+            user_session.approved_at = datetime.now()
+            user_session.approved_by = session.get('admin_username', 'admin')
         
-        # Move to handled requests
-        handled_requests['approved'].append(req)
+        db.session.commit()
         
         return jsonify({'success': True})
     
@@ -579,20 +595,19 @@ def admin_reject(request_id):
     if not session.get('admin_logged_in'):
         return jsonify({'success': False, 'message': 'Unauthorized'})
     
-    if request_id in approval_requests:
-        req = approval_requests[request_id]
-        req['status'] = 'rejected'
-        req['handled_at'] = datetime.now()
-        req['rejected_by'] = session.get('admin_username', 'admin')
+    approval_request = ApprovalRequest.query.get(request_id)
+    if approval_request:
+        approval_request.status = 'rejected'
+        approval_request.handled_at = datetime.now()
+        approval_request.handled_by = session.get('admin_username', 'admin')
         
-        # Mark data as rejected
-        session_id = req['session_id']
-        if session_id in captured_data:
-            captured_data[session_id]['rejected_at'] = datetime.now()
-            captured_data[session_id]['rejected_by'] = session.get('admin_username', 'admin')
+        # Update user session
+        user_session = UserSession.query.get(approval_request.session_id)
+        if user_session:
+            user_session.rejected_at = datetime.now()
+            user_session.rejected_by = session.get('admin_username', 'admin')
         
-        # Move to handled requests
-        handled_requests['rejected'].append(req)
+        db.session.commit()
         
         return jsonify({'success': True})
     
