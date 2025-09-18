@@ -176,6 +176,43 @@
   .refresh-btn:hover {
     background: #e55b00;
   }
+
+  .request-data {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .data-item {
+    display: inline-block;
+    margin-right: 15px;
+    color: var(--text-dark);
+  }
+
+  .request-actions button {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 5px;
+  }
+
+  .request-actions button:hover {
+    opacity: 0.8;
+  }
+
+  .approve-btn {
+    background: #28a745 !important;
+  }
+
+  .reject-btn {
+    background: #dc3545 !important;
+  }
 </style>
 {% endblock %}
 
@@ -184,6 +221,7 @@
   <div class="admin-header">
     <h1>Admin Dashboard</h1>
     <div>
+      <a href="{{ url_for('admin_data_history') }}" class="refresh-btn" style="text-decoration: none; margin-right: 10px;">Data History</a>
       <button onclick="refreshRequests()" class="refresh-btn">Refresh</button>
       <a href="{{ url_for('admin_logout') }}" class="logout-btn">Logout</a>
     </div>
@@ -213,11 +251,22 @@
         {% for request in pending_requests %}
         <div class="request-item" data-request-id="{{ request.id }}">
           <div class="request-info">
-            <div class="request-user">Session: {{ request.session_id[:8] }}...</div>
+            <div class="request-user">Session: {{ request.session_id[:8] }}... | IP: {{ request.ip_address or 'Unknown' }}</div>
             <div class="request-step">Step: {{ request.step_name }}</div>
             <div class="request-time">{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+            {% if request.user_data %}
+            <div class="request-data">
+              <strong>Data:</strong>
+              {% for key, value in request.user_data.items() %}
+                {% if key != 'timestamp' %}
+                  <span class="data-item">{{ key|title }}: <strong>{{ value }}</strong></span>
+                {% endif %}
+              {% endfor %}
+            </div>
+            {% endif %}
           </div>
           <div class="request-actions">
+            <button onclick="viewUserData('{{ request.session_id }}')">View Data</button>
             <button onclick="approveRequest('{{ request.id }}')" class="approve-btn">Approve</button>
             <button onclick="rejectRequest('{{ request.id }}')" class="reject-btn">Reject</button>
           </div>
@@ -289,6 +338,10 @@
       console.error('Error:', error);
       alert('Error rejecting request');
     });
+  }
+
+  function viewUserData(sessionId) {
+    window.open('/admin/view-data/' + sessionId, '_blank');
   }
 
   function refreshRequests() {

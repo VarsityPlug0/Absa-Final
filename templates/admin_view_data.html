@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}View Session Data - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .data-viewer {
+    max-width: 1000px;
+    margin: 20px auto;
+    padding: 0 20px;
+  }
+
+  .data-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .data-header h1 {
+    margin: 0;
+    font-size: 24px;
+  }
+
+  .back-btn {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+  }
+
+  .back-btn:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  .session-info {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .session-id {
+    font-family: monospace;
+    background: #f8f9fa;
+    padding: 5px 10px;
+    border-radius: 4px;
+    color: var(--primary);
+    font-weight: bold;
+  }
+
+  .steps-container {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  .step-item {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 20px;
+  }
+
+  .step-item:last-child {
+    border-bottom: none;
+  }
+
+  .step-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .step-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--primary);
+  }
+
+  .step-time {
+    color: var(--text-light);
+    font-size: 12px;
+  }
+
+  .step-data {
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 15px;
+  }
+
+  .data-row {
+    display: flex;
+    margin-bottom: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .data-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .data-label {
+    flex: 0 0 150px;
+    font-weight: bold;
+    color: var(--text-dark);
+  }
+
+  .data-value {
+    flex: 1;
+    color: var(--text-light);
+    font-family: monospace;
+    background: #fff;
+    padding: 5px 10px;
+    border-radius: 3px;
+    border: 1px solid #dee2e6;
+  }
+
+  .sensitive-data {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+  }
+
+  .export-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+  }
+
+  .export-btn:hover {
+    background: #e55b00;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .status-approved {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .status-pending {
+    background: #fff3cd;
+    color: #856404;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="data-viewer">
+  <div class="data-header">
+    <h1>Session Data Viewer</h1>
+    <div>
+      <button onclick="exportData()" class="export-btn">Export JSON</button>
+      <a href="{{ url_for('admin_dashboard') }}" class="back-btn">← Back to Dashboard</a>
+    </div>
+  </div>
+
+  <div class="session-info">
+    <h3>Session Information</h3>
+    <div class="data-row">
+      <div class="data-label">Session ID:</div>
+      <div class="data-value session-id">{{ session_id }}</div>
+    </div>
+    <div class="data-row">
+      <div class="data-label">Started:</div>
+      <div class="data-value">{{ data.session_start.strftime('%Y-%m-%d %H:%M:%S') if data.session_start else 'Unknown' }}</div>
+    </div>
+    {% if data.approved_at %}
+    <div class="data-row">
+      <div class="data-label">Status:</div>
+      <div class="data-value">
+        <span class="status-badge status-approved">Approved</span>
+        at {{ data.approved_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        by {{ data.approved_by or 'admin' }}
+      </div>
+    </div>
+    {% elif data.rejected_at %}
+    <div class="data-row">
+      <div class="data-label">Status:</div>
+      <div class="data-value">
+        <span class="status-badge status-rejected">Rejected</span>
+        at {{ data.rejected_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        by {{ data.rejected_by or 'admin' }}
+      </div>
+    </div>
+    {% else %}
+    <div class="data-row">
+      <div class="data-label">Status:</div>
+      <div class="data-value">
+        <span class="status-badge status-pending">Pending</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if data.steps %}
+  <div class="steps-container">
+    <div style="padding: 20px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+      <h3 style="margin: 0;">Authentication Steps</h3>
+    </div>
+    
+    {% for step_name, step_data in data.steps.items() %}
+    <div class="step-item">
+      <div class="step-header">
+        <div class="step-name">{{ step_name }}</div>
+        <div class="step-time">{{ step_data.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+      </div>
+      
+      <div class="step-data">
+        {% for key, value in step_data.data.items() %}
+          {% if key != 'timestamp' %}
+          <div class="data-row">
+            <div class="data-label">{{ key|title|replace('_', ' ') }}:</div>
+            <div class="data-value {% if key in ['pin', 'surephrase', 'cvv'] %}sensitive-data{% endif %}">
+              {{ value }}
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+        
+        {% if step_data.ip_address %}
+        <div class="data-row">
+          <div class="data-label">IP Address:</div>
+          <div class="data-value">{{ step_data.ip_address }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="steps-container">
+    <div style="padding: 40px; text-align: center; color: var(--text-light);">
+      No step data available for this session.
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function exportData() {
+    fetch('/admin/export-data/{{ session_id }}')
+      .then(response => response.json())
+      .then(data => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'session_{{ session_id }}_data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error('Error exporting data:', error);
+        alert('Error exporting data');
+      });
+  }
+</script>
+{% endblock %}

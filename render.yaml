@@ -8,8 +8,8 @@ services:
       - key: FLASK_ENV
         value: production
       - key: ADMIN_USERNAME
-        generateValue: true
+        value: admin
       - key: ADMIN_PASSWORD
-        generateValue: true
+        value: admin123
       - key: SECRET_KEY
         generateValue: true
