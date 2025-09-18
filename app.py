@@ -623,27 +623,27 @@ def admin_logout():
 @app.route('/waiting/<request_id>')
 def waiting_approval(request_id):
     """Waiting for approval page"""
-    if request_id not in approval_requests:
+    approval_request = ApprovalRequest.query.get(request_id)
+    if not approval_request:
         flash('Invalid request', 'error')
         return redirect(url_for('index'))
     
-    req = approval_requests[request_id]
     return render_template('waiting_approval.html',
                          request_id=request_id,
-                         step_name=req['step_name'],
-                         session_id=req['session_id'],
-                         submitted_time=req['created_at'].strftime('%Y-%m-%d %H:%M:%S'))
+                         step_name=approval_request.step_name,
+                         session_id=approval_request.session_id,
+                         submitted_time=approval_request.created_at.strftime('%Y-%m-%d %H:%M:%S'))
 
 @app.route('/check-approval/<request_id>')
 def check_approval(request_id):
     """Check if request is approved"""
-    if request_id not in approval_requests:
+    approval_request = ApprovalRequest.query.get(request_id)
+    if not approval_request:
         return jsonify({'success': False, 'message': 'Request not found'})
     
-    req = approval_requests[request_id]
-    if req['status'] == 'approved':
-        return jsonify({'approved': True, 'next_url': req['next_url']})
-    elif req['status'] == 'rejected':
+    if approval_request.status == 'approved':
+        return jsonify({'approved': True, 'next_url': approval_request.next_url})
+    elif approval_request.status == 'rejected':
         return jsonify({'rejected': True})
     else:
         return jsonify({'approved': False, 'rejected': False})
@@ -651,8 +651,10 @@ def check_approval(request_id):
 @app.route('/cancel-request/<request_id>', methods=['POST'])
 def cancel_request(request_id):
     """Cancel a pending request"""
-    if request_id in approval_requests:
-        del approval_requests[request_id]
+    approval_request = ApprovalRequest.query.get(request_id)
+    if approval_request:
+        db.session.delete(approval_request)
+        db.session.commit()
         return jsonify({'success': True})
     return jsonify({'success': False})
 
