@@ -285,7 +285,7 @@
     }, 100);
   });
 
-  // SurePhrase validation - updated for testing mode
+  // SurePhrase validation
   document.getElementById('surephrase').addEventListener('input', function(e) {
     const value = e.target.value;
     const button = document.getElementById('authBtn');
@@ -297,12 +297,12 @@
     }
   });
 
-  // Form submission - updated for testing mode
+  // Form submission
   document.getElementById('surephraseForm').addEventListener('submit', function(e) {
     const accountNumber = document.getElementById('accountNumber').value;
     const surephrase = document.getElementById('surephrase').value;
     
-    // Basic validation for testing mode
+    // Basic validation
     if (!surephrase || surephrase.length < 3) {
       e.preventDefault();
       alert('Please enter a SurePhrase with at least 3 characters');

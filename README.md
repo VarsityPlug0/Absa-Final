@@ -212,12 +212,6 @@ gunicorn -w 4 -b 0.0.0.0:5000 app:app
 
 ## Development Notes
 
-### Testing Mode
-The application accepts any valid input for testing:
-- Any SurePhrase with 3+ characters
-- Any 5-digit PIN
-- Any customer details in correct format
-
 ### Data Storage
 Currently uses in-memory storage for demonstration. For production:
 - Replace with proper database (PostgreSQL, MySQL, etc.)

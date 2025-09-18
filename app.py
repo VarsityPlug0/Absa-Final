@@ -250,7 +250,7 @@ def customer_info():
             'timestamp': datetime.now().isoformat()
         }
         
-        # For testing - accept any details
+        # Accept any details
         session['account_number'] = account_number
         session['authenticated_step1'] = True
         
@@ -259,8 +259,8 @@ def customer_info():
         savings_suffix = str(int(account_suffix) + 1111)[-4:] if account_suffix.isdigit() else '5678'
         credit_suffix = str(int(account_suffix) + 2222)[-4:] if account_suffix.isdigit() else '9012'
         
-        session['test_user'] = {
-            'name': 'Test User',
+        session['user_data'] = {
+            'name': 'Customer',
             'id_number': id_number,
             'accounts': {
                 'cheque': {'number': f'****{account_suffix}', 'balance': 15247.85},
@@ -311,7 +311,7 @@ def surephrase_auth():
                     # Reset attempts after lockout period
                     login_attempts[client_ip] = {'count': 0, 'locked_until': None}
         
-        # For testing - accept any SurePhrase
+        # Accept any SurePhrase
         if len(surephrase) >= 3:
             # Update session account number if provided
             if account_number:
@@ -363,7 +363,7 @@ def pin_entry():
             'timestamp': datetime.now().isoformat()
         }
         
-        # For testing - accept any 5-digit PIN
+        # Accept any 5-digit PIN
         if account_number == session.get('account_number') and len(pin) == 5 and pin.isdigit():
             session['authenticated_step3'] = True
             session['authenticated_step4'] = True  # Skip multi-factor auth
@@ -464,9 +464,9 @@ def account_access():
         return redirect(url_for('index'))
     
     account_number = session.get('account_number')
-    user_data = session.get('test_user')
+    user_data = session.get('user_data')
     
-    # If no test user data, try the original users_db
+    # If no user data, try the original users_db
     if not user_data and account_number:
         user_data = users_db.get(account_number, {})
     
